@@ -26,6 +26,17 @@
 
 ;;; Code:
 
+(require 'cardan-slots)
+
+(defun cardan-slots ()
+  "Action for viewing slow."
+  (interactive)
+  (view-slots))
+
+(defhydra hydra-cardan (global-map "C-c C-b")
+  "Cardan"
+  ("s" cardan-slots "Slots"))
+
 ;;; _
 (provide 'cardan)
 ;; End:
