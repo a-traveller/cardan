@@ -26,6 +26,8 @@
 
 ;;; Code:
 
+(require 'cardan-address)
+(require 'cardan-saved-addresses)
 (require 'cardan-slots)
 
 (defun cardan-slots ()
@@ -33,9 +35,21 @@
   (interactive)
   (view-slots))
 
+(defun cardan-saved-addresses ()
+  "ACtion for saved-addresses."
+  (interactive)
+  (view-saved-addresses))
+
+(defun cardan-search-address ()
+  "Action for searching address."
+  (interactive)
+  (prompt-for-search-address))
+
 (defhydra hydra-cardan (global-map "C-c C-b")
   "Cardan"
-  ("s" cardan-slots "Slots"))
+  ("s" cardan-slots "Slots")
+  ("a" cardan-saved-addresses "Saved Addresses")
+  ("A" cardan-search-address "Search Address"))
 
 ;;; _
 (provide 'cardan)
