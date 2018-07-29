@@ -27,30 +27,41 @@
 (require 'cardan-utils)
 (require 'cardan-slot)
 
-(define-derived-mode cardan-slots-mode fundamental-mode "cardan-slots"
-  "Major mode for slots.")
-
-(defvar cardan-slot-mode-map
+(defvar cardan-slots-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "+") 'cardan-load-more-slots)
-    (define-key map (kbd "RET") 'view-slot-from-point)
+    (define-key map (kbd "+") 'cardan-do-load-more-slots)
+    (define-key map (kbd "q") 'kill-current-buffer)
     map)
   "Keymap for `cardan-slots-mode'.")
 
-(defun view-slot-from-point ()
+(defvar cardan-slot-row-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") 'cardan-view-slot-from-point)
+    map)
+  "Keymap for `cardan-slot-row'.")
+
+(defun cardan-do-load-more-slots ()
+  "Click on load more button programmatically."
+  (interactive)
+  (push-button (- (point-max) 1)))
+
+(define-derived-mode cardan-slots-mode fundamental-mode "cardan-slots"
+  "Major mode for slots.")
+
+(defun cardan-view-slot-from-point ()
   "View slot by reading text-properties at point."
   (interactive)
   (let* ((pos (point))
          (block-hash (get-text-property pos 'block-hash)))
-    (view-slot block-hash)))
+    (cardan-view-slot block-hash)))
 
-(defun format-slot (slot-data)
+(defun cardan-format-slot (slot-data)
   "Format hash-table SLOT-DATA."
-  (let* ((epoch-num (get-epoch-num slot-data))
-         (slot-num (get-slot-num slot-data))
+  (let* ((epoch-num (cardan-get-epoch-num slot-data))
+         (slot-num (cardan-get-slot-num slot-data))
          (time-issued (gethash "cbeTimeIssued" slot-data))
          (tx-num (gethash "cbeTxNum" slot-data))
-         (total-sent (string-to-number (get-in-hash '("cbeTotalSent" "getCoin") slot-data)))
+         (total-sent (string-to-number (cardan-get-in-hash '("cbeTotalSent" "getCoin") slot-data)))
          (slot-leader (substring (gethash "cbeBlockLead" slot-data) 0 8))
          (bytes (gethash "cbeSize" slot-data))
          (column-gap "  "))
@@ -60,7 +71,7 @@
         'face 'cardan-epoch-slot-face)
       column-gap
       (propertize
-        (format "<%s>" (format-unix-timestamp time-issued))
+        (format "<%s>" (cardan-format-unix-timestamp time-issued))
         'face 'cardan-time-issued-face)
       column-gap
       (propertize
@@ -68,7 +79,7 @@
         'face 'cardan-tx-num-face)
       column-gap
       (propertize
-        (format "%20s" (format-ada (lovelace-to-ada total-sent)))
+        (format "%20s" (cardan-format-ada (cardan-lovelace-to-ada total-sent)))
         'face 'cardan-total-sent-face)
       column-gap
       (propertize
@@ -81,7 +92,7 @@
 
 (defun cardan-load-more-slots (button page-num)
   "Load slots in the given PAGE-NUM when load previous BUTTON is clicked."
-  (list-block-pages
+  (cardan-list-block-pages
     page-num
     (lambda (response)
       (let* ((slots (car (cdr (gethash "Right" response))))
@@ -90,24 +101,24 @@
           (read-only-mode 0)
           (goto-char (button-start button))
           (dolist (slot-data slots)
-            (insert (slot-row slot-data))
+            (insert (cardan-slot-row slot-data))
             (insert "\n"))
           (button-put button
             'action (lambda (_button)
                       (funcall 'cardan-load-more-slots _button (- page-num 1))))
           (read-only-mode 1))))))
 
-(defun slot-row (slot-data)
+(defun cardan-slot-row (slot-data)
   "Generate slot row from SLOT-DATA."
-  (propertize (format-slot slot-data)
-    'keymap cardan-slot-mode-map
-    'epoch-num (get-epoch-num slot-data)
-    'slot-num (get-slot-num slot-data)
-    'block-hash (get-block-hash slot-data)))
+  (propertize (cardan-format-slot slot-data)
+    'keymap cardan-slot-row-map
+    'epoch-num (cardan-get-epoch-num slot-data)
+    'slot-num (cardan-get-slot-num slot-data)
+    'block-hash (cardan-get-block-hash slot-data)))
 
-(defun view-slots ()
+(defun cardan-view-slots ()
   "View slots."
-  (list-block-pages
+  (cardan-list-block-pages
     nil
     (lambda (response)
       (let* ((current-page-num (car (gethash "Right" response)))
@@ -119,13 +130,13 @@
           (erase-buffer)
           (cardan-slots-mode)
           (dolist (slot-data slots)
-            (insert (slot-row slot-data))
+            (insert (cardan-slot-row slot-data))
             (insert "\n"))
           (insert-text-button
             (substitute-command-keys
               (format "Type \\<%s>\\[%s] to previous slots"
-                'cardan-slot-mode-map
-                'cardan-load-more-slots))
+                'cardan-slots-mode-map
+                'cardan-do-load-more-slots))
             'action (lambda (_button)
                       (funcall 'cardan-load-more-slots _button (- current-page-num 1)))
             'follow-link t)

@@ -26,28 +26,17 @@
 
 (require 'cardan-utils)
 
-(defun format-output (output)
-  "Format OUTPUT data."
-  (let ((address (car output))
-         (sent (string-to-number (gethash "getCoin" (car (cdr output))))))
-    (concat
-      (propertize
-        (format "%20s" (format-ada (lovelace-to-ada sent)))
-        'face 'cardan-total-sent-face)
-      " => "
-      (propertize address 'face 'cardan-address-hash-face))))
-
-(defun format-slot-summary (slot-response)
+(defun cardan-format-slot-summary (slot-response)
   "Format slot summary from blocks/summary api SLOT-RESPONSE."
-  (let* ((slot-data (get-in-hash '("Right" "cbsEntry") slot-response))
-         (epoch-num (get-epoch-num slot-data))
-         (slot-num (get-slot-num slot-data))
-         (total-sent (get-total-sent slot-data))
-         (fee (get-fee slot-data))
-         (block-hash (get-block-hash slot-data))
-         (previous-block-hash (get-in-hash '("Right" "cbsPrevHash") slot-response))
-         (next-block-hash (get-in-hash '("Right" "cbsNextHash") slot-response))
-         (merkle-root (get-in-hash '("Right" "cbsMerkleRoot") slot-response)))
+  (let* ((slot-data (cardan-get-in-hash '("Right" "cbsEntry") slot-response))
+         (epoch-num (cardan-get-epoch-num slot-data))
+         (slot-num (cardan-get-slot-num slot-data))
+         (total-sent (cardan-get-total-sent slot-data))
+         (fee (cardan-get-fee slot-data))
+         (block-hash (cardan-get-block-hash slot-data))
+         (previous-block-hash (cardan-get-in-hash '("Right" "cbsPrevHash") slot-response))
+         (next-block-hash (cardan-get-in-hash '("Right" "cbsNextHash") slot-response))
+         (merkle-root (cardan-get-in-hash '("Right" "cbsMerkleRoot") slot-response)))
     (concat
       (format "%-16s: " "Epoch")
       (propertize (number-to-string epoch-num) 'face 'cardan-epoch-slot-face)
@@ -57,12 +46,12 @@
       "\n"
       (format "%-16s: " "Total Output")
       (propertize
-        (format "%s" (format-ada (lovelace-to-ada total-sent)))
+        (format "%s" (cardan-format-ada (cardan-lovelace-to-ada total-sent)))
         'face 'cardan-total-sent-face)
       "\n"
       (format "%-16s: " "Fee")
       (propertize
-        (format "%s" (format-ada (lovelace-to-ada fee)))
+        (format "%s" (cardan-format-ada (cardan-lovelace-to-ada fee)))
         'face 'cardan-fee-face)
       "\n"
       (format "%-16s: " "Hash")
@@ -77,22 +66,22 @@
       (format "%-16s: " "Merkle root")
       (propertize merkle-root 'face 'cardan-hash-face))))
 
-(defun load-block-summary-and-transactions (block-hash callback)
+(defun cardan-load-block-summary-and-transactions (block-hash callback)
   "Load the block summary and its transactions from BLOCK-HASH and CALLBACK."
-  (read-block-summary
+  (cardan-read-block-summary
     block-hash
     (lambda (slot-response)
-      (list-block-transactions
+      (cardan-list-block-transactions
         block-hash
         (lambda (transactions-response)
           (funcall callback slot-response transactions-response))))))
 
-(defun view-slot (block-hash)
+(defun cardan-view-slot (block-hash)
   "View detail from BLOCK-HASH."
-  (load-block-summary-and-transactions
+  (cardan-load-block-summary-and-transactions
     block-hash
     (lambda (slot-response transactions-response)
-      (let* ((slot-data (get-in-hash '("Right" "cbsEntry") slot-response))
+      (let* ((slot-data (cardan-get-in-hash '("Right" "cbsEntry") slot-response))
              (transactions (gethash "Right" transactions-response))
              (tx-num (gethash "cbeTxNum" slot-data))
              (buffer-name (concat "*Slot-" block-hash "*"))
@@ -103,11 +92,11 @@
           (erase-buffer)
           (insert (propertize "Slot" 'face 'header-line))
           (insert "\n\n\n")
-          (insert (format-slot-summary slot-response))
+          (insert (cardan-format-slot-summary slot-response))
           (insert "\n\n\n")
           (insert (propertize (format "Transactions (%d)" tx-num) 'face 'header-line))
           (insert "\n\n\n")
-          (insert (format-transactions transactions))
+          (insert (cardan-format-transactions transactions))
           (read-only-mode 1))))))
 
 ;;; _

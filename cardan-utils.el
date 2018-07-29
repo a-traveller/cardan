@@ -28,7 +28,7 @@
 (require 'json)
 
 (defvar CARDAN-EXPLORER-BASE-URL "https://cardanoexplorer.com")
-(defvar CARDAN-SENSITIVE-CONFIG-FILE-PATH "~/Downloads/dd.json.gpg")
+(defvar CARDAN-SENSITIVE-CONFIG-FILE-PATH "~/.secrets/cardan.json.gpg")
 
 (defgroup cardan nil
   "Your cardan."
@@ -93,14 +93,20 @@
   "Face for payload size in bytes."
   :group 'cardan-faces)
 
-(defun format-unix-timestamp (timestamp)
+(defvar cardan-address-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") 'cardan-view-address-from-point)
+    map)
+  "Keymap for `cardan-address'.")
+
+(defun cardan-format-unix-timestamp (timestamp)
   "Format unix timestamp to friendly display from TIMESTAMP."
   (concat
     (format-time-string "%Y-%m-%d %a %H:%M:%S" (seconds-to-time timestamp))
     " "
     (car (cdr (current-time-zone)))))
 
-(defun read-sensitive-config ()
+(defun cardan-read-sensitive-config ()
   "Read sensitive config."
   (let* ((json-object-type 'hash-table)
          (json-array-type 'list)
@@ -108,14 +114,14 @@
     (json-read-file CARDAN-SENSITIVE-CONFIG-FILE-PATH)))
 
 
-(defun parse-response-to-hash-table (json-string)
+(defun cardan-parse-response-to-hash-table (json-string)
   "Parse JSON-STRING to hash table."
   (let ((json-object-type 'hash-table)
         (json-array-type 'list)
         (json-key-type 'string))
     (json-read-from-string json-string)))
 
-(defun get-json-response (url callback)
+(defun cardan-get-json-response (url callback)
   "Get response as json from URL and CALLBACK."
   (let ((json-string nil))
     (url-retrieve
@@ -126,35 +132,35 @@
           (re-search-forward "^$" nil 'move)
           (setq json-string (buffer-substring-no-properties (point) (point-max)))
           (kill-buffer (current-buffer)))
-        (funcall callback (parse-response-to-hash-table json-string))))))
+        (funcall callback (cardan-parse-response-to-hash-table json-string))))))
 
-(defun get-in-hash (path-list hash-table)
+(defun cardan-get-in-hash (path-list hash-table)
   "Get value in HASH-TABLE with PATH-LIST."
   (if path-list
-    (get-in-hash
+    (cardan-get-in-hash
       (cdr path-list)
       (gethash (car path-list) hash-table))
     hash-table))
 
-(defun list-block-pages (page-num callback)
+(defun cardan-list-block-pages (page-num callback)
   "List blocks using optional PAGE-NUM and CALLBACK."
   (let
     ((url (concat
             CARDAN-EXPLORER-BASE-URL
             "/api/blocks/pages"
             (if (eq page-num nil) "" (concat "?page=" (number-to-string page-num))))))
-    (get-json-response url callback)))
+    (cardan-get-json-response url callback)))
 
-(defun read-block-summary (block-hash callback)
+(defun cardan-read-block-summary (block-hash callback)
   "Read block summary from BLOCK-HASH and CALLBACK."
   (let
     ((url (concat
             CARDAN-EXPLORER-BASE-URL
             "/api/blocks/summary/"
             block-hash)))
-    (get-json-response url callback)))
+    (cardan-get-json-response url callback)))
 
-(defun list-block-transactions (block-hash callback)
+(defun cardan-list-block-transactions (block-hash callback)
   "List block transactions from BLOCK-HASH and CALLBACK."
   (let
     ((url (concat
@@ -162,18 +168,18 @@
             "/api/blocks/txs/"
             block-hash
             "?limit=5000")))
-    (get-json-response url callback)))
+    (cardan-get-json-response url callback)))
 
-(defun read-address (address-hash callback)
+(defun cardan-read-address (address-hash callback)
   "Read address summary from ADDRESS-HASH and CALLBACK."
   (let
     ((url (concat
             CARDAN-EXPLORER-BASE-URL
             "/api/addresses/summary/"
             address-hash)))
-    (get-json-response url callback)))
+    (cardan-get-json-response url callback)))
 
-(defun group-number (num &optional size char)
+(defun cardan-group-number (num &optional size char)
   "Format NUM as string grouped to SIZE with CHAR."
   ;; Based on code for `math-group-float' in calc-ext.el
   (let* ((size (or size 3))
@@ -189,70 +195,134 @@
         pt (- pt size)))
     str))
 
-(defun mask-decimal (string length character)
+(defun cardan-mask-decimal (string length character)
   "Mask a number STRING with CHARACTER to LENGTH."
   (let* ((decimal-length (length (car (cdr (split-string string "\\.")))))
           (mask-length (if (> length decimal-length) (- length decimal-length) 0)))
     (concat string (make-string mask-length character))))
 
-(defun format-ada (amount)
+(defun cardan-format-ada (amount)
   "Format ada AMOUNT."
-  (mask-decimal (group-number amount) 6 ?0))
+  (cardan-mask-decimal (cardan-group-number amount) 6 ?0))
 
-(defun lovelace-to-ada (lovelace)
+(defun cardan-lovelace-to-ada (lovelace)
   "Convert LOVELACE to ADA."
   (/ (float lovelace) 1000000))
 
-(lovelace-to-ada 30000000000)
-
-(defun get-epoch-num (slot-data)
+(defun cardan-get-epoch-num (slot-data)
   "Get epoch number from SLOT-DATA."
   (gethash "cbeEpoch" slot-data))
 
-(defun get-slot-num (slot-data)
+(defun cardan-get-slot-num (slot-data)
   "Get slot number from SLOT-DATA."
   (gethash "cbeSlot" slot-data))
 
-(defun get-block-hash (slot-data)
+(defun cardan-get-block-hash (slot-data)
   "Get block hash from SLOT-DATA."
   (gethash "cbeBlkHash" slot-data))
 
-(defun get-total-sent (slot-data)
+(defun cardan-get-total-sent (slot-data)
   "Get total sent coins from SLOT-DATA."
-  (string-to-number (get-in-hash '("cbeTotalSent" "getCoin") slot-data)))
+  (string-to-number (cardan-get-in-hash '("cbeTotalSent" "getCoin") slot-data)))
 
-(defun get-fee (slot-data)
+(defun cardan-get-fee (slot-data)
   "Get fee from SLOT-DATA."
-  (string-to-number (get-in-hash '("cbeFees" "getCoin") slot-data)))
+  (string-to-number (cardan-get-in-hash '("cbeFees" "getCoin") slot-data)))
 
-(defun format-transaction (transaction-data)
+(defun cardan-format-output (output)
+  "Format OUTPUT data."
+  (let ((address-hash (car output))
+         (sent (string-to-number (gethash "getCoin" (car (cdr output))))))
+    (concat
+      (propertize
+        (format "%20s" (cardan-format-ada (cardan-lovelace-to-ada sent)))
+        'face 'cardan-total-sent-face)
+      " => "
+      (cardan-format-address-hash address-hash))))
+
+(defun cardan-format-transaction (transaction-data)
   "Format a transaction data instance from blocks/txs api TRANSACTION-DATA."
   (let ((transaction-id (gethash "ctbId" transaction-data))
         (time-issued (gethash "ctbTimeIssued" transaction-data))
         (inputs (gethash "ctbInputs" transaction-data))
         (outputs (gethash "ctbOutputs" transaction-data))
-        (output-sum (string-to-number (get-in-hash '("ctbOutputSum" "getCoin") transaction-data))))
+        (output-sum (string-to-number (cardan-get-in-hash '("ctbOutputSum" "getCoin") transaction-data))))
     (concat
       (propertize
-        (format "<%s>" (format-unix-timestamp time-issued))
+        (format "<%s>" (cardan-format-unix-timestamp time-issued))
         'face 'cardan-time-issued-face)
       " "
       transaction-id
       "\n"
-      (propertize
-        (format "%s" (car (car inputs)))
-        'face 'cardan-address-hash-face)
+      (cardan-format-address-hash (car (car inputs)))
       "\n"
-      (mapconcat 'format-output outputs "\n")
+      (mapconcat 'cardan-format-output outputs "\n")
       "\n"
       (make-string 20 ?-)
       "\n"
-      (format "%20s" (format-ada (lovelace-to-ada output-sum)))
+      (format "%20s" (cardan-format-ada (cardan-lovelace-to-ada output-sum)))
       "\n")))
 
-(defun format-transactions (transactions)
+(defun cardan-format-transactions (transactions)
   "Format a list of TRANSACTIONS."
-  (concat (mapconcat 'format-transaction transactions "\n")))
+  (concat (mapconcat 'cardan-format-transaction transactions "\n")))
+
+(defun cardan-view-address-from-point ()
+  "View view address detail by reading text-properties at point."
+  (interactive)
+  (let* ((pos (point))
+         (address-hash (get-text-property pos 'address-hash)))
+    (cardan-view-address address-hash)))
+
+(defun cardan-format-address-hash (address-hash)
+  "Format ADDRESS-HASH."
+  (propertize
+    (format "%s" address-hash)
+    'keymap cardan-address-map
+    'face 'cardan-address-hash-face
+    'address-hash address-hash))
+
+(defun cardan-prompt-for-search-address ()
+  "Prompt user to enter address."
+  (interactive)
+  (cardan-view-address (read-string "Enter address: ")))
+
+(defun cardan-format-address-summary (address-response)
+  "Format summary from ADDRESS-RESPONSE."
+  (let* ((address-data (gethash "Right" address-response))
+         (address-hash (gethash "caAddress" address-data))
+         (tx-num (gethash "caTxNum"  address-data))
+         (balance (string-to-number (cardan-get-in-hash '("caBalance" "getCoin") address-data)))
+         (transactions (gethash "caTxList" address-data)))
+    (concat
+      (format "%-16s: " "Address")
+      (cardan-format-address-hash address-hash)
+      "\n"
+      (format "%-16s: " "Final Balance")
+      (propertize
+        (format "%s" (cardan-format-ada (cardan-lovelace-to-ada balance)))
+        'face 'cardan-total-sent-face)
+      "\n\n"
+      (propertize (format "Transactions (%d)" tx-num) 'face 'header-line)
+      "\n\n"
+      (cardan-format-transactions transactions))))
+
+(defun cardan-view-address (address-hash)
+  "View address detail from ADDRESS-HASH."
+  (cardan-read-address
+    address-hash
+    (lambda (response)
+      (let* ((buffer-name (concat "*Address-" address-hash "*"))
+             (buffer (get-buffer-create buffer-name)))
+        (switch-to-buffer buffer)
+        (with-current-buffer buffer
+          (read-only-mode 0)
+          (erase-buffer)
+          (insert (propertize "Address" 'face 'header-line))
+          (insert "\n\n\n")
+          (insert (cardan-format-address-summary response))
+          (highlight-regexp address-hash 'cardan-address-hash-highlight-face)
+          (read-only-mode 1))))))
 
 (provide 'cardan-utils)
 ;;; cardan-utils.el ends here

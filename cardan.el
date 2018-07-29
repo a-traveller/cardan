@@ -26,30 +26,62 @@
 
 ;;; Code:
 
-(require 'cardan-address)
 (require 'cardan-saved-addresses)
 (require 'cardan-slots)
+(require 'cardan-utils)
 
 (defun cardan-slots ()
   "Action for viewing slow."
   (interactive)
-  (view-slots))
+  (cardan-view-slots))
 
 (defun cardan-saved-addresses ()
   "ACtion for saved-addresses."
   (interactive)
-  (view-saved-addresses))
+  (cardan-view-saved-addresses))
 
 (defun cardan-search-address ()
   "Action for searching address."
   (interactive)
-  (prompt-for-search-address))
+  (cardan-prompt-for-search-address))
 
-(defhydra hydra-cardan (global-map "C-c C-b")
-  "Cardan"
-  ("s" cardan-slots "Slots")
-  ("a" cardan-saved-addresses "Saved Addresses")
-  ("A" cardan-search-address "Search Address"))
+(defhydra hydra-cardan-menu (:hint nil)
+  "
+   .  .  .     ^Address^               ^Slots
+ .  . o .  .   ----------------------------------
+   o O O o     _a_: Saved addresses    _s_: Slots
+. . O   O . .  _A_: Search address
+   o O O o
+ .  . o .  .
+   .  .  .     _q_: Close this menu
+"
+  ("a" cardan-saved-addresses :color blue)
+  ("A" cardan-search-address :color blue)
+  ("s" cardan-slots :color cyan)
+  ("q" nil :color red))
+
+(global-set-key (kbd "C-c C-c") 'hydra-cardan-menu/body)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;;; _
 (provide 'cardan)
