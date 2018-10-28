@@ -1,4 +1,4 @@
-;;; cardan.el --- Define cardan commands   -*- lexical-binding: t; -*-
+;;; cardan-init.el --- Initialize cardan   -*- lexical-binding: t; -*-
 ;; Version: 0.1.0
 
 ;; Copyright (C) 2018 Atraveller
@@ -22,34 +22,9 @@
 
 ;;; Commentary:
 
-;; Define cardan commands.
-
 ;;; Code:
 
-(require 'cardan-saved-addresses)
-(require 'cardan-slots)
-(require 'cardan-utils)
-
-(defun cardan-slots ()
-  "Action for viewing slow."
-  (interactive)
-  (cardan-view-slots))
-
-(defun cardan-saved-addresses ()
-  "ACtion for saved-addresses."
-  (interactive)
-  (cardan-view-saved-addresses))
-
-(defun cardan-search-address ()
-  "Action for searching address."
-  (interactive)
-  (cardan-prompt-for-search-address))
-
-(global-set-key (kbd "C-c c o") 'cardan-saved-addresses)
-(global-set-key (kbd "C-c c f") 'cardan-search-address)
-(global-set-key (kbd "C-c c s") 'cardan-slots)
-
-;;; _
-(provide 'cardan)
-;; End:
-;;; cardan.el ends here
+(add-to-list 'load-path default-directory)
+(require 'cardan)
+(mapc #'byte-compile-file '("cardan.el" "cardan-saved-addresses.el" "cardan-slots.el" "cardan-utils.el"))
+;;; cardan-init.el ends here

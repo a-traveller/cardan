@@ -107,7 +107,7 @@
     (car (cdr (current-time-zone)))))
 
 (defun cardan-read-sensitive-config ()
-  "Read sensitive config."
+  "Read sensitive config.  Must be in the form of list({hash, address})."
   (let* ((json-object-type 'hash-table)
          (json-array-type 'list)
          (json-key-type 'string))
