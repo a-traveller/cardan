@@ -33,9 +33,9 @@
     (cardan-format-address-hash address-hash)
     (format "[%s]" label)))
 
-(defun cardan-view-saved-addresses ()
-  "View saved addresses."
-  (let* ((config (cardan-read-sensitive-config))
+(defun cardan-view-saved-addresses (config-file-path)
+  "View saved addresses.   CONFIG-FILE-PATH should be a json file."
+  (let* ((config (cardan-read-sensitive-config config-file-path))
          (addresses (gethash "addresses" config))
          (buffer-name "*Saved Addresses*")
          (buffer (get-buffer-create buffer-name)))
@@ -48,8 +48,8 @@
       (insert "\n\n\n")
       (dolist (address-entry addresses)
         (insert (cardan-format-saved-address-row
-                  (gethash "hash" address-entry)
-                  (gethash "label" address-entry)))
+                  (gethash "address" address-entry)
+                  (gethash "id" address-entry)))
         (insert "\n"))
       (read-only-mode 1))))
 

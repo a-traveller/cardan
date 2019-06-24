@@ -28,7 +28,6 @@
 (require 'json)
 
 (defvar CARDAN-EXPLORER-BASE-URL "https://cardanoexplorer.com")
-(defvar CARDAN-SENSITIVE-CONFIG-FILE-PATH "~/.secrets/cardan.json.gpg")
 
 (defgroup cardan nil
   "Your cardan."
@@ -106,12 +105,12 @@
     " "
     (car (cdr (current-time-zone)))))
 
-(defun cardan-read-sensitive-config ()
-  "Read sensitive config.  Must be in the form of list({hash, address})."
+(defun cardan-read-sensitive-config (path)
+  "Read sensitive config.  Must be in the form of list({id, address}).  PATH to json/json.gpg file."
   (let* ((json-object-type 'hash-table)
          (json-array-type 'list)
          (json-key-type 'string))
-    (json-read-file CARDAN-SENSITIVE-CONFIG-FILE-PATH)))
+    (json-read-file path)))
 
 
 (defun cardan-parse-response-to-hash-table (json-string)
@@ -282,11 +281,6 @@
     'face 'cardan-address-hash-face
     'address-hash address-hash))
 
-(defun cardan-prompt-for-search-address ()
-  "Prompt user to enter address."
-  (interactive)
-  (cardan-view-address (read-string "Enter address: ")))
-
 (defun cardan-format-address-summary (address-response)
   "Format summary from ADDRESS-RESPONSE."
   (let* ((address-data (gethash "Right" address-response))
@@ -322,7 +316,8 @@
           (insert "\n\n\n")
           (insert (cardan-format-address-summary response))
           (highlight-regexp address-hash 'cardan-address-hash-highlight-face)
-          (read-only-mode 1))))))
+          (read-only-mode 1)
+          (goto-char (point-min)))))))
 
 (provide 'cardan-utils)
 ;;; cardan-utils.el ends here

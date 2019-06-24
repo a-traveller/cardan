@@ -36,18 +36,18 @@
   (cardan-view-slots))
 
 (defun cardan-saved-addresses ()
-  "ACtion for saved-addresses."
+  "ACtion for saved-addresses.  CONFIG-FILE-PATH is a json file."
   (interactive)
-  (cardan-view-saved-addresses))
+  (cardan-view-saved-addresses (read-file-name "Config file:")))
 
 (defun cardan-search-address ()
   "Action for searching address."
   (interactive)
-  (cardan-prompt-for-search-address))
+  (cardan-view-address (read-string "Enter address: ")))
 
-(global-set-key (kbd "C-c c o") 'cardan-saved-addresses)
-(global-set-key (kbd "C-c c f") 'cardan-search-address)
-(global-set-key (kbd "C-c c s") 'cardan-slots)
+(global-set-key (kbd "C-c c d o") 'cardan-saved-addresses)
+(global-set-key (kbd "C-c c d f") 'cardan-search-address)
+(global-set-key (kbd "C-c c d s") 'cardan-slots)
 
 ;;; _
 (provide 'cardan)
